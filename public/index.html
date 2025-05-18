@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CCTV Stream Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        #videoCanvas {
+            max-width: 100%;
+            margin-top: 20px;
+            border: 2px solid #333;
+            border-radius: 8px;
+        }
+        h1 {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>CCTV Stream Test</h1>
+    <canvas id="videoCanvas"></canvas>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const canvas = document.getElementById('videoCanvas');
+        const ctx = canvas.getContext('2d');
+        const socket = io();
+
+        // 캔버스 크기 설정
+        canvas.width = 640;
+        canvas.height = 480;
+
+        // 스트림 데이터 수신 및 표시
+        socket.on('stream', (data) => {
+            const uint8Array = new Uint8Array(data);
+            const blob = new Blob([uint8Array], { type: 'video/mp2t' });
+            const url = URL.createObjectURL(blob);
+            
+            const video = document.createElement('video');
+            video.src = url;
+            video.onloadedmetadata = () => {
+                video.play();
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                URL.revokeObjectURL(url);
+            };
+        });
+    </script>
+</body>
+</html> 
