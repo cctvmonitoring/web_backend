@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'dart:typed_data';
+import 'dart:js_util' as js_util;
 
 
 // 백엔드와 연결을 위한 예시 플러터 코드드
@@ -44,7 +45,7 @@ class _VideoStreamPageState extends State<VideoStreamPage> {
 
   void _connectSocket() {
     try {
-      _socket = IO.io('http://localhost:3000', <String, dynamic>{
+      _socket = IO.io('http://192.168.1.21:3000', <String, dynamic>{
         'transports': ['websocket'],
         'autoConnect': true,
         'reconnection': true,
@@ -77,9 +78,24 @@ class _VideoStreamPageState extends State<VideoStreamPage> {
       });
 
       _socket!.on('stream', (data) {
+        print('수신 데이터 타입: ${data.runtimeType}');
+        print('수신 데이터: $data');
         if (data is List<int>) {
           setState(() {
             _imageData = Uint8List.fromList(data);
+            _isConnected = true;
+            _statusMessage = '스트림 수신 중...';
+          });
+        } else if (data is Uint8List) {
+          setState(() {
+            _imageData = data;
+            _isConnected = true;
+            _statusMessage = '스트림 수신 중...';
+          });
+        } else if (data is ByteBuffer) {
+          final bytes = Uint8List.view(data);
+          setState(() {
+            _imageData = bytes;
             _isConnected = true;
             _statusMessage = '스트림 수신 중...';
           });

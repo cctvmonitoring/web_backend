@@ -5,7 +5,8 @@ import numpy as np
 from picamera2 import Picamera2
 import face_recognition
 
-# 라즈베리 파이 예시코드드
+# 라즈베리 파이 예시코드
+# 라즈베리 파이에 해당 소스 코드를 넣어서 실행 하면 됩니다.
 
 # 카메라 초기화
 picam2 = Picamera2()
@@ -22,6 +23,7 @@ async def stream_camera(websocket):
         while True:
             # 카메라에서 프레임 캡처
             frame = picam2.capture_array()
+            print("프레임 캡처됨:", frame.shape)
             
             # BGR에서 RGB로 변환 (face_recognition은 RGB 사용)
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -44,10 +46,16 @@ async def stream_camera(websocket):
                           cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
             
             # BGR에서 JPEG로 인코딩
-            _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
+            success, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
+            if success:
+                print("JPEG 인코딩 성공:", len(buffer))
+            else:
+                print("JPEG 인코딩 실패")
+                continue
             
             # WebSocket을 통해 전송
             await websocket.send(buffer.tobytes())
+            print("프레임 전송 완료")
             
             # 약간의 지연 추가 (20 FPS에 가깝게)
             await asyncio.sleep(0.05)
