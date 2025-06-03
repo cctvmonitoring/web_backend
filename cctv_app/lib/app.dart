@@ -9,7 +9,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'CCTV Viewer',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: const VideoStreamPage(),
+      home: const MultiStreamPage(),
     );
   }
 }
