@@ -75,6 +75,7 @@
 const WebSocket = require('ws');
 const wss = new WebSocket.Server({ port: 5000 });  // YOLO 서버가 연결
 
+
 // Socket.IO 그대로 유지
 const express = require('express');
 const app = express();
