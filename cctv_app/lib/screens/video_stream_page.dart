@@ -97,33 +97,40 @@ class _MultiStreamPageState extends State<MultiStreamPage> {
   final List<Uint8List?> _images = List.filled(9, null);
   final List<List<DetectionBox>> _boxesList = List.generate(9, (_) => []);
   final List<bool> _connectedList = List.filled(9, false);
-  final List<SocketService> _socketServices = [];
+
+  late SocketService _socketService;
 
   @override
   void initState() {
     super.initState();
-    for (int i = 0; i < streamCount; i++) {
-      final socketService = SocketService(
-        id: i,
-        onDataReceived: (image, boxes, connected) {
-          setState(() {
-            _images[i] = image;
-            _boxesList[i] = boxes;
-            _connectedList[i] = connected;
-          });
-        },
-      );
-      socketService.connect();
-      _socketServices.add(socketService);
-    }
+    _socketService = SocketService(
+      onDataReceived: (image, boxes, connected, streamId) {
+        final index = _streamNameToIndex(streamId);
+        if (index == -1) return;
+
+        setState(() {
+          _images[index] = image;
+          _boxesList[index] = boxes;
+          _connectedList[index] = connected;
+        });
+      },
+    );
+    _socketService.connect();
   }
 
   @override
   void dispose() {
-    for (final service in _socketServices) {
-      service.disconnect();
-    }
+    _socketService.disconnect();
     super.dispose();
+  }
+
+  int _streamNameToIndex(String name) {
+    final match = RegExp(r'stream(\d+)').firstMatch(name);
+    if (match != null) {
+      final n = int.parse(match.group(1)!);
+      return (n - 1).clamp(0, streamCount - 1);
+    }
+    return -1;
   }
 
   @override

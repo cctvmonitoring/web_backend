@@ -102,12 +102,20 @@ wss.on('connection', function connection(ws) {
   // });
   ws.on('message', function incoming(data) {
     try {
-      const jsonString = data.toString();  // ✅ Buffer → 문자열
-      io.emit('stream', jsonString);       // ✅ Flutter에서 String으로 받음
+      const jsonString = data.toString();           // Buffer → 문자열
+      const parsed = JSON.parse(jsonString);        // 문자열 → JSON
+
+      const streamName = parsed.stream_name || 'unknown';
+
+      // 각 스트림 이름에 맞게 개별 전송
+      io.emit(streamName, parsed);  // 🔥 stream1, stream2 등 이름으로 이벤트 전송
+
+      console.log(`[WebSocket] 전송 완료 → ${streamName}`);
+
     } catch (e) {
-      console.error('[WebSocket] JSON 변환 실패:', e);
+      console.error('[WebSocket] JSON 처리 실패:', e);
     }
-  });
+});
 
 
   ws.on('close', () => {
@@ -129,6 +137,6 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-http.listen(PORT, () => {
+http.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Node.js server running on port ${PORT}`);
 });

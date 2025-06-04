@@ -82,59 +82,60 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../core/detection_box.dart';
 
 class SocketService {
-  final int id;
-  final Function(Uint8List?, List<DetectionBox>, bool connected) onDataReceived;
+  final Function(Uint8List?, List<DetectionBox>, bool connected, String streamId) onDataReceived;
 
   late IO.Socket _socket;
 
-  SocketService({required this.id, required this.onDataReceived});
+  SocketService({required this.onDataReceived});
 
   void connect() {
-    final port = 3000 + id;
-    final url = 'http://192.168.1.10:$port';
+    final url = 'http://192.168.1.10:3000'; // 하나의 포트만 사용
 
     _socket = IO.io(url, <String, dynamic>{
       'transports': ['websocket'],
       'autoConnect': true,
-      'reconnectionAttempts': 3,
-      'reconnectionDelay': 1000,
     });
 
     _socket.onConnect((_) {
-      print('✅ [$port] Socket.IO connected');
+      print('✅ Socket.IO connected');
     });
 
-    _socket.onConnectError((_) {
-      onDataReceived(null, [], false);
-    });
+    _socket.onError((_) => onDataReceived(null, [], false, ''));
+    _socket.onConnectError((_) => onDataReceived(null, [], false, ''));
 
-    _socket.onError((_) {
-      onDataReceived(null, [], false);
-    });
-
-    _socket.on('stream', (data) {
-      try {
-        final decoded = jsonDecode(data);
-        final imageBytes = base64Decode(decoded['image']);
-        final detections = <DetectionBox>[];
-
-        for (var det in decoded['detections']) {
-          final rect = Rect.fromLTRB(
-            det['bbox'][0].toDouble(),
-            det['bbox'][1].toDouble(),
-            det['bbox'][2].toDouble(),
-            det['bbox'][3].toDouble(),
-          );
-          detections.add(DetectionBox(det['class_id'], det['confidence'].toDouble(), rect));
-        }
-
-        onDataReceived(imageBytes, detections, true);
-      } catch (e) {
-        onDataReceived(null, [], false);
-      }
-    });
+    // stream1 ~ stream9 구독
+    for (int i = 1; i <= 9; i++) {
+      final streamName = 'stream$i';
+      _socket.on(streamName, (data) {
+        _handleStream(data, streamName);
+      });
+    }
 
     _socket.connect();
+  }
+
+  void _handleStream(dynamic data, String streamId) {
+    try {
+      final decoded = data;
+      final imageBytes = base64Decode(decoded['image']);
+      final detections = <DetectionBox>[];
+
+      for (var det in decoded['detections']) {
+        final rect = Rect.fromLTRB(
+          det['bbox'][0].toDouble(),
+          det['bbox'][1].toDouble(),
+          det['bbox'][2].toDouble(),
+          det['bbox'][3].toDouble(),
+        );
+        detections.add(
+          DetectionBox(det['class_id'], det['confidence'].toDouble(), rect),
+        );
+      }
+
+      onDataReceived(imageBytes, detections, true, streamId);
+    } catch (e) {
+      onDataReceived(null, [], false, streamId);
+    }
   }
 
   void disconnect() {
